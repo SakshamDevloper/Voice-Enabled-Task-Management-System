@@ -1,0 +1,30 @@
+.task-card {
+  background: #1a1c22; border: 1px solid #2a2d35;
+  border-radius: 10px; padding: 14px; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.task-card:hover { border-color: #4f8ef7; }
+.task-card.done { opacity: 0.5; }
+
+.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+
+.priority-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.priority-high   { background: #3f1a1a; color: #f87171; }
+.priority-med    { background: #2d2a14; color: #fbbf24; }
+.priority-low    { background: #1a2d1a; color: #4ade80; }
+
+.btn-delete { background: none; border: none; color: #4b5563; cursor: pointer; font-size: 13px; }
+.btn-delete:hover { color: #f87171; }
+
+.task-title { color: #e5e7eb; font-size: 14px; font-weight: 500; margin: 0 0 6px; }
+.task-desc  { color: #6b7280; font-size: 12px; margin: 0 0 12px; line-height: 1.5; }
+
+.card-footer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.category  { font-size: 11px; background: #1f2228; color: #9ca3af; padding: 3px 8px; border-radius: 6px; }
+.due-date  { font-size: 11px; color: #6b7280; }
+.btn-toggle {
+  margin-left: auto; font-size: 12px; padding: 4px 12px;
+  background: transparent; border: 1px solid #2a2d35;
+  border-radius: 6px; color: #9ca3af; cursor: pointer;
+}
+.btn-toggle:hover { border-color: #4f8ef7; color: #4f8ef7; }

@@ -1,0 +1,130 @@
+<div class="board-container">
+
+  <!-- Header -->
+  <div class="board-header">
+    <div class="header-left">
+      <h1>My Tasks</h1>
+      <span class="task-count">{{ filtered.length }} tasks</span>
+    </div>
+    <div class="header-right">
+      <input
+        [(ngModel)]="searchQuery"
+        class="search-input"
+        placeholder="Search tasks..." />
+
+      <select [(ngModel)]="filterPriority" class="filter-select">
+        <option value="all">All priorities</option>
+        <option value="high">High</option>
+        <option value="med">Medium</option>
+        <option value="low">Low</option>
+      </select>
+
+      <!-- Voice Button -->
+      <button class="btn-voice" [class.listening]="isListening" (click)="startVoice()">
+        🎙 {{ isListening ? 'Listening...' : 'Voice' }}
+      </button>
+
+      <button class="btn-add" (click)="showAddModal = true">+ Add Task</button>
+    </div>
+  </div>
+
+  <!-- Kanban Columns -->
+  <div class="kanban-board">
+
+    <div class="column col-todo">
+      <div class="col-header">
+        <span class="col-dot dot-todo"></span>
+        <span class="col-title">To Do</span>
+        <span class="col-badge">{{ todoTasks.length }}</span>
+      </div>
+      <app-task-card
+        *ngFor="let task of todoTasks"
+        [task]="task"
+        (onToggle)="toggleDone($event)"
+        (onDelete)="deleteTask($event)">
+      </app-task-card>
+    </div>
+
+    <div class="column col-inprog">
+      <div class="col-header">
+        <span class="col-dot dot-inprog"></span>
+        <span class="col-title">In Progress</span>
+        <span class="col-badge">{{ inprogTasks.length }}</span>
+      </div>
+      <app-task-card
+        *ngFor="let task of inprogTasks"
+        [task]="task"
+        (onToggle)="toggleDone($event)"
+        (onDelete)="deleteTask($event)">
+      </app-task-card>
+    </div>
+
+    <div class="column col-done">
+      <div class="col-header">
+        <span class="col-dot dot-done"></span>
+        <span class="col-title">Done</span>
+        <span class="col-badge">{{ doneTasks.length }}</span>
+      </div>
+      <app-task-card
+        *ngFor="let task of doneTasks"
+        [task]="task"
+        (onToggle)="toggleDone($event)"
+        (onDelete)="deleteTask($event)">
+      </app-task-card>
+    </div>
+
+  </div>
+
+  <!-- Add Task Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="showAddModal = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>New Task</h2>
+
+      <div class="form-group">
+        <label>Title</label>
+        <input [(ngModel)]="newTask.title" placeholder="Task title" />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea [(ngModel)]="newTask.description" placeholder="Details..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Priority</label>
+          <select [(ngModel)]="newTask.priority">
+            <option value="high">High</option>
+            <option value="med">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select [(ngModel)]="newTask.status">
+            <option value="todo">To Do</option>
+            <option value="inprog">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <input [(ngModel)]="newTask.category" placeholder="e.g. Work" />
+        </div>
+        <div class="form-group">
+          <label>Due Date</label>
+          <input [(ngModel)]="newTask.dueDate" type="date" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="showAddModal = false">Cancel</button>
+        <button class="btn-save" (click)="addTask()">Save Task</button>
+      </div>
+    </div>
+  </div>
+
+</div>

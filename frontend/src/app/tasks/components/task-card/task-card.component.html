@@ -1,0 +1,19 @@
+<div class="task-card" [class.done]="task.status === 'done'">
+  <div class="card-top">
+    <span class="priority-badge" [class]="'priority-' + task.priority">
+      {{ priorityLabel[task.priority] }}
+    </span>
+    <button class="btn-delete" (click)="onDelete.emit(task._id!)">✕</button>
+  </div>
+
+  <p class="task-title">{{ task.title }}</p>
+  <p class="task-desc" *ngIf="task.description">{{ task.description }}</p>
+
+  <div class="card-footer">
+    <span class="category" *ngIf="task.category">{{ task.category }}</span>
+    <span class="due-date" *ngIf="task.dueDate">📅 {{ task.dueDate | date: 'MMM d' }}</span>
+    <button class="btn-toggle" (click)="onToggle.emit(task)">
+      {{ task.status === 'done' ? '↩ Undo' : '✓ Done' }}
+    </button>
+  </div>
+</div>

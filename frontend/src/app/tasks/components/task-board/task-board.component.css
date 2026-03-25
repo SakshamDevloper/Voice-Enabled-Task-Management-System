@@ -1,0 +1,54 @@
+.board-container { padding: 24px; background: #0e0f11; min-height: 100vh; font-family: 'DM Sans', sans-serif; }
+
+.board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+.header-left h1 { color: #fff; font-size: 24px; margin: 0; }
+.task-count { font-size: 13px; color: #6b7280; margin-left: 10px; }
+.header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.search-input, .filter-select {
+  background: #181a1e; border: 1px solid #2a2d35;
+  border-radius: 8px; padding: 9px 14px; color: #e5e7eb;
+  font-size: 13px; outline: none;
+}
+.search-input { width: 200px; }
+
+.btn-voice {
+  padding: 9px 16px; border-radius: 8px; border: 1px solid #2a2d35;
+  background: #181a1e; color: #9ca3af; cursor: pointer; font-size: 13px;
+  transition: all 0.2s;
+}
+.btn-voice.listening { background: #4f8ef720; border-color: #4f8ef7; color: #4f8ef7; }
+
+.btn-add {
+  padding: 9px 18px; background: #4f8ef7; color: #fff;
+  border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+
+.kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+.column { background: #13151a; border-radius: 12px; padding: 16px; min-height: 400px; }
+
+.col-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.col-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-todo { background: #6b7280; }
+.dot-inprog { background: #4f8ef7; }
+.dot-done { background: #22c55e; }
+.col-title { font-weight: 600; color: #e5e7eb; font-size: 14px; flex: 1; }
+.col-badge { background: #1f2228; color: #6b7280; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.modal { background: #13151a; border: 1px solid #2a2d35; border-radius: 14px; padding: 28px; width: 460px; max-width: 95vw; }
+.modal h2 { color: #fff; margin: 0 0 20px; font-size: 18px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; color: #9ca3af; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; box-sizing: border-box; background: #0e0f11; border: 1px solid #2a2d35;
+  border-radius: 8px; padding: 10px 12px; color: #e5e7eb; font-size: 13px; outline: none;
+}
+.form-group textarea { resize: vertical; min-height: 80px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-cancel { padding: 9px 18px; background: transparent; border: 1px solid #2a2d35; border-radius: 8px; color: #9ca3af; cursor: pointer; }
+.btn-save { padding: 9px 18px; background: #4f8ef7; border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; }

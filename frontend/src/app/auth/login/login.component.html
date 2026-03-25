@@ -1,0 +1,57 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-left">
+      <div class="brand">
+        <span class="dot"></span> VoiceTask
+      </div>
+
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to your workspace</p>
+
+      <div *ngIf="error" class="error-banner">{{ error }}</div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label>Email</label>
+          <input formControlName="email" type="email" placeholder="you@example.com" />
+          <span class="field-error"
+            *ngIf="form.get('email')?.invalid && form.get('email')?.touched">
+            Enter a valid email
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <input formControlName="password"
+              [type]="showPassword ? 'text' : 'password'"
+              placeholder="••••••••" />
+            <span class="toggle-eye" (click)="showPassword = !showPassword">
+              {{ showPassword ? '' : '' }}
+            </span>
+          </div>
+        </div>
+
+        <a class="forgot" routerLink="/forgot-password">Forgot password?</a>
+
+        <button type="submit" class="btn-primary" [disabled]="loading">
+          {{ loading ? 'Signing in...' : 'Sign in' }}
+        </button>
+      </form>
+
+      <p class="switch-link">
+        No account? <a routerLink="/register">Create one</a>
+      </p>
+    </div>
+
+    <div class="auth-right">
+      <h2>Manage tasks<br>with your voice</h2>
+      <p>The smarter way to stay organized.</p>
+      <ul class="feature-list">
+        <li><span class="icon"></span> <div><strong>Voice input</strong><p>Create tasks by speaking</p></div></li>
+        <li><span class="icon"></span> <div><strong>Kanban board</strong><p>To do, in progress, done</p></div></li>
+        <li><span class="icon"></span> <div><strong>Secure auth</strong><p>JWT protected routes</p></div></li>
+      </ul>
+    </div>
+  </div>
+</div>
