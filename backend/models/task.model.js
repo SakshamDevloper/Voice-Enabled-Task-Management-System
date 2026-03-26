@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
 
 const taskSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
-  },
+  title: { type: String, required: true },
   description: String,
   status: {
     type: String,
@@ -17,9 +14,14 @@ const taskSchema = new mongoose.Schema({
     default: 'med'
   },
   category: String,
-  dueDate: Date
-}, {
-  timestamps: true
-});
+  dueDate: Date,
+  
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
+
+}, { timestamps: true });
 
 module.exports = mongoose.model('Task', taskSchema);
