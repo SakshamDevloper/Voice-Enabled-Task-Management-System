@@ -21,10 +21,10 @@
 
       <!-- Voice Button -->
       <button class="btn-voice" [class.listening]="isListening" (click)="startVoice()">
-        🎙 {{ isListening ? 'Listening...' : 'Voice' }}
+        {{ isListening ? 'Listening...' : 'Voice Command' }}
       </button>
 
-      <button class="btn-add" (click)="showAddModal = true">+ Add Task</button>
+      <button class="btn-add" (click)="showAddModal = true">Add Task</button>
     </div>
   </div>
 
