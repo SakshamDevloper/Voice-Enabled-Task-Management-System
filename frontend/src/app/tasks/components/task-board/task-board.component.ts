@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { TaskService } from '../../services/task.service';
 import { Task } from '../../models/task.model';
 import { TaskCardComponent } from '../task-card/task-card.component';
+import { AuthService } from '../../../services/auth.service';
+import { NotificationService, Notification } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-task-board',
@@ -30,11 +32,61 @@ export class TaskBoardComponent implements OnInit {
     dueDate: ''
   };
 
-  constructor(private taskService: TaskService) {}
+  notifications: Notification[] = [];
+  unreadCount = 0;
+  showNotificationsDropdown = false;
+
+  constructor(
+    private taskService: TaskService,
+    private authService: AuthService,
+    private notificationService: NotificationService
+  ) {}
 
   ngOnInit(): void {
     this.taskService.getTasks().subscribe((tasks: Task[]) => {
       this.tasks = tasks;
+    });
+
+    const user = this.authService.getUser();
+    const userId = user?.id || user?._id;
+    if (userId) {
+      this.notificationService.requestNotificationPermission();
+      this.notificationService.fetchNotifications(userId).subscribe();
+      
+      this.notificationService.getNotifications().subscribe(list => {
+        this.notifications = list;
+      });
+      
+      this.notificationService.getUnreadCount().subscribe(count => {
+        this.unreadCount = count;
+      });
+    }
+  }
+
+  toggleNotificationsDropdown(): void {
+    this.showNotificationsDropdown = !this.showNotificationsDropdown;
+  }
+
+  markNotificationAsRead(notification: Notification): void {
+    const id = notification.id || (notification as any)._id;
+    if (id) {
+      this.notificationService.markAsRead(id).subscribe();
+    }
+  }
+
+  deleteNotification(notification: Notification): void {
+    const id = notification.id || (notification as any)._id;
+    if (id) {
+      this.notificationService.deleteNotification(id).subscribe();
+    }
+  }
+
+  clearAllNotifications(): void {
+    this.notifications.forEach(n => {
+      const id = n.id || (n as any)._id;
+      if (id) {
+        this.notificationService.deleteNotification(id).subscribe();
+      }
     });
   }
 

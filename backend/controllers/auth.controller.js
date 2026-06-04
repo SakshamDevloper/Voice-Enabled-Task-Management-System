@@ -18,7 +18,12 @@ const getCachedUser = async (email, phone) => {
     return cached.user;
   }
   
-  const user = await User.findOne({ $or: [{ email }, { phone }] });
+  const query = [];
+  if (email) query.push({ email });
+  if (phone) query.push({ phone });
+  if (query.length === 0) return null;
+
+  const user = await User.findOne({ $or: query });
   if (user) {
     userCache.set(cacheKey, { user, timestamp: Date.now() });
   }
@@ -30,7 +35,10 @@ exports.register = async (req, res) => {
     const { firstName, lastName, email, password, phone } = req.body;
     if (!email && !phone) return res.status(400).json({ message: 'Email or phone required' });
 
-    const exists = await User.findOne({ $or: [{ email }, { phone }] });
+    const query = [];
+    if (email) query.push({ email });
+    if (phone) query.push({ phone });
+    const exists = await User.findOne({ $or: query });
     if (exists) return res.status(409).json({ message: 'User already registered' });
 
     const hash = password ? await bcrypt.hash(password, 12) : null;
@@ -93,7 +101,10 @@ exports.login = async (req, res) => {
 exports.oauthLogin = async (req, res) => {
   try {
     const { provider, providerId, email, firstName, lastName, avatar } = req.body;
-    let user = await User.findOne({ $or: [{ providerId }, { email }] });
+    const query = [];
+    if (providerId) query.push({ providerId });
+    if (email) query.push({ email });
+    let user = query.length > 0 ? await User.findOne({ $or: query }) : null;
     
     if (!user) {
       user = await User.create({ provider, providerId, email, firstName, lastName, avatar });

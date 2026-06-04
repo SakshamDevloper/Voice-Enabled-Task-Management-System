@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
 export interface Notification {
@@ -41,8 +41,18 @@ export class NotificationService {
       const ws = new WebSocket('ws://localhost:5000');
       ws.onmessage = (event) => {
         const notification = JSON.parse(event.data);
-        this.addNotification(notification);
-        this.playNotificationSound(notification);
+        
+        // Filter by current user ID
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const currentUserId = currentUser.id || currentUser._id;
+        
+        if (notification.userId === currentUserId) {
+          this.addNotification(notification);
+          this.playNotificationSound(notification);
+          this.showBrowserNotification(notification.title, {
+            body: notification.message
+          });
+        }
       };
     } catch (err) {
       console.error('WebSocket connection failed:', err);
@@ -74,7 +84,15 @@ export class NotificationService {
   }
 
   markAsRead(notificationId: string): Observable<any> {
-    return this.http.patch(`${this.api}/${notificationId}/read`, {});
+    return this.http.patch(`${this.api}/${notificationId}/read`, {}).pipe(
+      tap(() => {
+        const current = this.notifications$.value.map(n => 
+          n.id === notificationId || (n as any)._id === notificationId ? { ...n, read: true } : n
+        );
+        this.notifications$.next(current);
+        this.updateUnreadCount();
+      })
+    );
   }
 
   private updateUnreadCount(): void {
@@ -83,11 +101,22 @@ export class NotificationService {
   }
 
   fetchNotifications(userId: string): Observable<Notification[]> {
-    return this.http.get<Notification[]>(`${this.api}/user/${userId}`);
+    return this.http.get<Notification[]>(`${this.api}/user/${userId}`).pipe(
+      tap(notifications => {
+        this.notifications$.next(notifications);
+        this.updateUnreadCount();
+      })
+    );
   }
 
   deleteNotification(notificationId: string): Observable<any> {
-    return this.http.delete(`${this.api}/${notificationId}`);
+    return this.http.delete(`${this.api}/${notificationId}`).pipe(
+      tap(() => {
+        const current = this.notifications$.value.filter(n => n.id !== notificationId && (n as any)._id !== notificationId);
+        this.notifications$.next(current);
+        this.updateUnreadCount();
+      })
+    );
   }
 
   // Request browser notification permission

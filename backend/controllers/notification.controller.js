@@ -45,6 +45,11 @@ exports.createNotification = async (userId, type, title, message, taskId = null)
       message,
       taskId
     });
+
+    if (global.broadcastNotification) {
+      global.broadcastNotification(notification);
+    }
+
     return notification;
   } catch (err) {
     console.error('Error creating notification:', err.message);
