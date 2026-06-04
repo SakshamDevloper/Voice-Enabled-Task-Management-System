@@ -6,6 +6,12 @@ require('dotenv').config();
 
 const app = express();
 
+// Custom request logger for troubleshooting
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  next();
+});
+
 // Performance optimizations
 app.use(compression({ level: 6 })); // Gzip compression
 app.use((req, res, next) => {
