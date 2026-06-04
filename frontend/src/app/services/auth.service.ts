@@ -1,31 +1,156 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, catchError, timeout, retry, BehaviorSubject } from 'rxjs';
 
 interface AuthResponse {
   token: string;
-  user: { id: string; email: string; firstName: string };
+  user: { id: string; email: string; firstName: string; avatar?: string; provider?: string };
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private api = 'http://localhost:5000/api/auth';
+  private tokenRefreshTimer: any;
+  private authStateSubject = new BehaviorSubject<boolean>(this.isLoggedIn());
+  public authState$ = this.authStateSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    this.setupTokenRefresh();
+  }
 
   login(email: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/login`, { email, password })
-      .pipe(tap(res => localStorage.setItem('token', res.token)));
+      .pipe(
+        timeout(8000), // 8 second timeout
+        retry({ count: 1, delay: 500 }), // Retry once after 500ms
+        tap(res => this.handleAuthSuccess(res)),
+        catchError(err => {
+          console.error('Login error:', err);
+          throw err;
+        })
+      );
   }
 
   register(data: any): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/register`, data)
-      .pipe(tap(res => localStorage.setItem('token', res.token)));
+      .pipe(
+        timeout(8000),
+        retry({ count: 1, delay: 500 }),
+        tap(res => this.handleAuthSuccess(res)),
+        catchError(err => {
+          console.error('Register error:', err);
+          throw err;
+        })
+      );
   }
 
-  logout(): void { localStorage.removeItem('token'); }
+  oauthLogin(provider: 'github' | 'microsoft' | 'google'): Observable<AuthResponse> {
+    // Simulate OAuth flow with reduced latency
+    const mockUser = {
+      provider,
+      providerId: `${provider}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      email: `user_${Date.now()}@${provider}.com`,
+      firstName: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
+      lastName: 'Account',
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider}_${Date.now()}`
+    };
+    
+    // Simulate OAuth server response with minimal delay (50ms)
+    return new Observable(observer => {
+      const timeoutId = setTimeout(() => {
+        this.http.post<AuthResponse>(`${this.api}/oauth`, mockUser)
+          .pipe(
+            timeout(7000),
+            retry({ count: 1, delay: 300 }),
+            tap(res => {
+              observer.next(res);
+              this.handleAuthSuccess(res);
+              observer.complete();
+            }),
+            catchError(err => {
+              observer.error(err);
+              throw err;
+            })
+          )
+          .subscribe();
+      }, 50); // Minimal delay before OAuth call
+      
+      return () => clearTimeout(timeoutId);
+    });
+  }
 
-  isLoggedIn(): boolean { return !!localStorage.getItem('token'); }
+  private handleAuthSuccess(res: AuthResponse): void {
+    localStorage.setItem('token', res.token);
+    localStorage.setItem('user', JSON.stringify(res.user));
+    localStorage.setItem('loginTime', Date.now().toString());
+    this.authStateSubject.next(true);
+    this.setupTokenRefresh();
+  }
 
-  getToken(): string | null { return localStorage.getItem('token'); }
+  private setupTokenRefresh(): void {
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+    }
+
+    // Refresh token 30 seconds before expiry (7 days = 604800s, refresh at 604770s = 7 days - 30s)
+    const tokenAge = Date.now() - parseInt(localStorage.getItem('loginTime') || '0');
+    const refreshIn = (604770 * 1000) - tokenAge;
+
+    if (refreshIn > 0) {
+      this.tokenRefreshTimer = setTimeout(() => {
+        this.refreshToken().subscribe();
+      }, Math.max(refreshIn, 1000));
+    }
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.api}/refresh-token`, {})
+      .pipe(
+        timeout(5000),
+        tap(res => {
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('loginTime', Date.now().toString());
+          this.setupTokenRefresh();
+        })
+      );
+  }
+
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('loginTime');
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+    }
+    this.authStateSubject.next(false);
+  }
+
+  isLoggedIn(): boolean {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    // Check token expiry
+    const loginTime = parseInt(localStorage.getItem('loginTime') || '0');
+    const tokenAge = Date.now() - loginTime;
+    const tokenDuration = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+
+    if (tokenAge > tokenDuration) {
+      this.logout();
+      return false;
+    }
+
+    return true;
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('token');
+  }
+
+  getUser() {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  }
+
+  getAuthState(): Observable<boolean> {
+    return this.authState$;
+  }
 }
