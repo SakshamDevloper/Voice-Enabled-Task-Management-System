@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -25,7 +25,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
@@ -37,7 +38,33 @@ export class LoginComponent implements OnInit, OnDestroy {
     // Check if already logged in
     if (this.authService.isLoggedIn()) {
       this.router.navigate(['/tasks']);
+      return;
     }
+
+    // Check for returning OAuth parameters from the consent screen
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      const provider = params['provider'];
+      const code = params['code'];
+      const email = params['email'];
+      const name = params['name'];
+
+      if (provider && code && email) {
+        this.authLoading[provider] = true;
+        this.authService.oauthLoginSecure(provider, code, email, name || 'OAuth User')
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.authLoading[provider] = false;
+              this.router.navigate(['/tasks']);
+            },
+            error: (err: any) => {
+              this.authLoading[provider] = false;
+              this.error = `${provider} authorization failed. Please try again.`;
+              console.error(`${provider} login error:`, err);
+            }
+          });
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -83,22 +110,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   loginWithProvider(provider: 'github' | 'microsoft' | 'google'): void {
-    this.authLoading[provider] = true;
     this.error = '';
-    
-    this.authService.oauthLogin(provider)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.authLoading[provider] = false;
-          this.router.navigate(['/tasks']);
-        },
-        error: (err: any) => {
-          this.authLoading[provider] = false;
-          this.error = `${provider} login failed. Please try again or use email/phone.`;
-          console.error(`${provider} login error:`, err);
-        }
-      });
+    // Redirect to the OAuth consent allowance page
+    this.router.navigate(['/oauth-consent'], { queryParams: { provider } });
   }
 
   togglePasswordVisibility(): void {

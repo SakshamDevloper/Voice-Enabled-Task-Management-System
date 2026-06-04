@@ -153,4 +153,20 @@ export class AuthService {
   getAuthState(): Observable<boolean> {
     return this.authState$;
   }
+
+  oauthLoginSecure(provider: string, code: string, email: string, name: string): Observable<AuthResponse> {
+    const mockUser = {
+      provider,
+      providerId: `${provider}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      email,
+      firstName: name.split(' ')[0] || 'User',
+      lastName: name.split(' ').slice(1).join(' ') || 'Account',
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider}_${Date.now()}`
+    };
+
+    return this.http.post<AuthResponse>(`${this.api}/oauth`, mockUser)
+      .pipe(
+        tap(res => this.handleAuthSuccess(res))
+      );
+  }
 }
