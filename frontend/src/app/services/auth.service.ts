@@ -169,4 +169,15 @@ export class AuthService {
         tap(res => this.handleAuthSuccess(res))
       );
   }
+
+  updateProfile(data: any): Observable<any> {
+    const token = this.getToken();
+    return this.http.put(`${this.api}/profile`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).pipe(
+      tap((res: any) => {
+        localStorage.setItem('user', JSON.stringify(res.user));
+      })
+    );
+  }
 }

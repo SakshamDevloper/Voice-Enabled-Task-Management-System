@@ -175,6 +175,50 @@ exports.getMe = async (req, res) => {
   }
 };
 
+exports.updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, phone, email } = req.body;
+    const userId = req.user.sub;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (phone && phone !== user.phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) return res.status(400).json({ message: 'Phone number already in use' });
+      user.phone = phone;
+    }
+    if (email && email !== user.email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) return res.status(400).json({ message: 'Email already in use' });
+      user.email = email;
+    }
+
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+
+    await user.save();
+
+    // Clear caches
+    userCache.delete(user.email);
+    userCache.delete(user.phone);
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatar: user.avatar
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Clear cache periodically
 setInterval(() => {
   for (const [key, value] of userCache.entries()) {

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { TaskService } from '../../services/task.service';
 import { Task } from '../../models/task.model';
@@ -36,10 +37,18 @@ export class TaskBoardComponent implements OnInit {
   unreadCount = 0;
   showNotificationsDropdown = false;
 
+  currentUser: any = null;
+  showProfileDropdown = false;
+  showEditProfileModal = false;
+  editProfileForm = { firstName: '', lastName: '', email: '', phone: '' };
+  profileSuccessMsg = '';
+  profileErrorMsg = '';
+
   constructor(
     private taskService: TaskService,
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -48,6 +57,7 @@ export class TaskBoardComponent implements OnInit {
     });
 
     const user = this.authService.getUser();
+    this.currentUser = user;
     const userId = user?.id || user?._id;
     if (userId) {
       this.notificationService.requestNotificationPermission();
@@ -61,6 +71,46 @@ export class TaskBoardComponent implements OnInit {
         this.unreadCount = count;
       });
     }
+  }
+
+  toggleProfileDropdown(): void {
+    this.showProfileDropdown = !this.showProfileDropdown;
+  }
+
+  openEditProfileModal(): void {
+    this.currentUser = this.authService.getUser();
+    this.editProfileForm = {
+      firstName: this.currentUser.firstName || '',
+      lastName: this.currentUser.lastName || '',
+      email: this.currentUser.email || '',
+      phone: this.currentUser.phone || ''
+    };
+    this.showEditProfileModal = true;
+    this.showProfileDropdown = false;
+    this.profileSuccessMsg = '';
+    this.profileErrorMsg = '';
+  }
+
+  saveProfile(): void {
+    this.profileSuccessMsg = '';
+    this.profileErrorMsg = '';
+    this.authService.updateProfile(this.editProfileForm).subscribe({
+      next: (res: any) => {
+        this.profileSuccessMsg = 'Profile updated successfully!';
+        this.currentUser = res.user;
+        setTimeout(() => {
+          this.showEditProfileModal = false;
+        }, 1500);
+      },
+      error: (err: any) => {
+        this.profileErrorMsg = err?.error?.message || 'Error updating profile. Please try again.';
+      }
+    });
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
   toggleNotificationsDropdown(): void {
