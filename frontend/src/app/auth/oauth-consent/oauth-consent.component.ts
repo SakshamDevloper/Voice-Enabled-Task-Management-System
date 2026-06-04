@@ -8,8 +8,8 @@ import { ActivatedRoute, Router } from '@angular/router';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="consent-container">
-      <div class="consent-card">
+    <div class="consent-container" [class.popup-mode]="isPopup">
+      <div class="consent-card" [class.popup-mode]="isPopup">
         <!-- Brand / Logo Header -->
         <div class="consent-header">
           <div class="app-logo">🎙️</div>
@@ -103,6 +103,10 @@ import { ActivatedRoute, Router } from '@angular/router';
       font-family: 'Inter', sans-serif;
       padding: 16px;
     }
+    .consent-container.popup-mode {
+      background: #ffffff;
+      padding: 0;
+    }
     .consent-card {
       background: #ffffff;
       border-radius: 16px;
@@ -111,6 +115,14 @@ import { ActivatedRoute, Router } from '@angular/router';
       max-width: 100%;
       padding: 32px;
       border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .consent-card.popup-mode {
+      box-shadow: none;
+      border: none;
+      width: 100%;
+      height: 100%;
+      padding: 16px 24px;
     }
     .consent-header {
       text-align: center;
@@ -289,12 +301,14 @@ export class OAuthConsentComponent implements OnInit {
   provider = 'google';
   fullName = '';
   email = '';
+  isPopup = false;
 
   constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       this.provider = params['provider'] || 'google';
+      this.isPopup = params['popup'] === 'true';
     });
   }
 
@@ -311,17 +325,37 @@ export class OAuthConsentComponent implements OnInit {
   authorize(): void {
     if (!this.fullName || !this.email) return;
     
-    this.router.navigate(['/login'], {
-      queryParams: {
-        provider: this.provider,
-        code: `auth_code_${Date.now()}`,
-        email: this.email,
-        name: this.fullName
+    if (this.isPopup) {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'oauth-success',
+          provider: this.provider,
+          code: `auth_code_${Date.now()}`,
+          email: this.email,
+          name: this.fullName
+        }, window.location.origin);
       }
-    });
+      window.close();
+    } else {
+      this.router.navigate(['/login'], {
+        queryParams: {
+          provider: this.provider,
+          code: `auth_code_${Date.now()}`,
+          email: this.email,
+          name: this.fullName
+        }
+      });
+    }
   }
 
   cancel(): void {
-    this.router.navigate(['/login']);
+    if (this.isPopup) {
+      if (window.opener) {
+        window.opener.postMessage({ type: 'oauth-cancel' }, window.location.origin);
+      }
+      window.close();
+    } else {
+      this.router.navigate(['/login']);
+    }
   }
 }

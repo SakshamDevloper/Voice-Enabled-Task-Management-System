@@ -111,8 +111,49 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   loginWithProvider(provider: 'github' | 'microsoft' | 'google'): void {
     this.error = '';
-    // Redirect to the OAuth consent allowance page
-    this.router.navigate(['/oauth-consent'], { queryParams: { provider } });
+    const width = 500;
+    const height = 650;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    const popupUrl = `/oauth-consent?provider=${provider}&popup=true`;
+    
+    const popup = window.open(
+      popupUrl,
+      'OAuthConsentPopup',
+      `width=${width},height=${height},top=${top},left=${left},status=no,resizable=yes,scrollbars=yes`
+    );
+
+    if (!popup) {
+      this.error = 'Pop-up window blocked. Please allow pop-ups for this site.';
+      return;
+    }
+
+    const messageListener = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'oauth-success') {
+        const { provider: resProvider, code, email, name } = event.data;
+        this.authLoading[resProvider] = true;
+        this.authService.oauthLoginSecure(resProvider, code, email, name)
+          .subscribe({
+            next: () => {
+              this.authLoading[resProvider] = false;
+              this.router.navigate(['/tasks']);
+              window.removeEventListener('message', messageListener);
+            },
+            error: (err: any) => {
+              this.authLoading[resProvider] = false;
+              this.error = `${resProvider} authorization failed. Please try again.`;
+              console.error(`${resProvider} login error:`, err);
+              window.removeEventListener('message', messageListener);
+            }
+          });
+      } else if (event.data?.type === 'oauth-cancel') {
+        window.removeEventListener('message', messageListener);
+      }
+    };
+
+    window.addEventListener('message', messageListener);
   }
 
   togglePasswordVisibility(): void {
