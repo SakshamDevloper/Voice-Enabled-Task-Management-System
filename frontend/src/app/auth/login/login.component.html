@@ -46,7 +46,7 @@
         </div>
 
         <div *ngIf="loginMode === 'phone'">
-          <div class="form-group">
+          <div class="form-group" *ngIf="!otpSent">
             <label>Phone Number</label>
             <input formControlName="phone" type="tel" placeholder="+1 (555) 123-4567" />
             <span class="field-error"
@@ -54,10 +54,19 @@
               Enter a valid phone number
             </span>
           </div>
+
+          <!-- OTP Verification Step -->
+          <div class="form-group" *ngIf="otpSent">
+            <label>Verification Code (OTP)</label>
+            <input type="text" [(ngModel)]="otpCode" [ngModelOptions]="{standalone: true}" placeholder="Enter 6-digit OTP" maxlength="6" />
+            <div class="otp-hint-banner" *ngIf="serverOtp">
+              💬 OTP Sent: <strong>{{ serverOtp }}</strong> (for development use)
+            </div>
+          </div>
         </div>
 
-        <button type="submit" class="btn-primary" [disabled]="loading || form.invalid">
-          {{ loading ? 'Signing in...' : 'Sign in' }}
+        <button type="submit" class="btn-primary" [disabled]="loading || (loginMode === 'phone' && otpSent ? !otpCode : form.invalid)">
+          {{ loading ? 'Signing in...' : (loginMode === 'phone' && !otpSent ? 'Send OTP' : 'Sign in') }}
         </button>
       </form>
 

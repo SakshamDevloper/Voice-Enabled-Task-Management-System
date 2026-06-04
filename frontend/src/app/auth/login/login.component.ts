@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { Subject } from 'rxjs';
@@ -9,7 +9,7 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -20,6 +20,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   authLoading: { [key: string]: boolean } = { github: false, microsoft: false, google: false };
   error = '';
   loginMode: 'email' | 'phone' = 'email';
+  otpSent = false;
+  otpCode = '';
+  serverOtp = '';
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -73,30 +76,74 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    if (this.loginMode === 'email' && this.form.invalid) return;
+    if (this.loginMode === 'phone' && !this.otpSent && this.form.invalid) return;
+
     this.loading = true;
     this.error = '';
-    const { email, password } = this.form.value;
     
-    this.authService.login(email, password)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
+    if (this.loginMode === 'email') {
+      const { email, password } = this.form.value;
+      this.authService.login(email, password)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.loading = false;
+            this.router.navigate(['/tasks']);
+          },
+          error: (err: any) => {
+            this.error = err?.error?.message || 'Invalid credentials. Please try again.';
+            this.loading = false;
+            console.error('Login error:', err);
+          }
+        });
+    } else {
+      const { phone } = this.form.value;
+      if (!this.otpSent) {
+        this.authService.sendOTP(phone)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (res: any) => {
+              this.loading = false;
+              this.otpSent = true;
+              this.serverOtp = res.otp || '';
+            },
+            error: (err: any) => {
+              this.error = err?.error?.message || 'Failed to send OTP. Please check the phone number.';
+              this.loading = false;
+              console.error('Send OTP error:', err);
+            }
+          });
+      } else {
+        if (!this.otpCode) {
+          this.error = 'Please enter the verification code.';
           this.loading = false;
-          this.router.navigate(['/tasks']);
-        },
-        error: (err: any) => {
-          this.error = err?.error?.message || 'Invalid credentials. Please try again.';
-          this.loading = false;
-          console.error('Login error:', err);
+          return;
         }
-      });
+        this.authService.verifyOTP(phone, this.otpCode)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.loading = false;
+              this.router.navigate(['/tasks']);
+            },
+            error: (err: any) => {
+              this.error = err?.error?.message || 'Invalid OTP code. Please try again.';
+              this.loading = false;
+              console.error('Verify OTP error:', err);
+            }
+          });
+      }
+    }
   }
 
   switchMode(mode: 'email' | 'phone'): void {
     this.loginMode = mode;
     this.form.reset();
     this.error = '';
+    this.otpSent = false;
+    this.otpCode = '';
+    this.serverOtp = '';
     if (mode === 'email') {
       this.form = this.fb.group({
         email: ['', [Validators.required, Validators.email]],

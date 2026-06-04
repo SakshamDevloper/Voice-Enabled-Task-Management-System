@@ -31,6 +31,29 @@ export class AuthService {
       );
   }
 
+  sendOTP(phone: string): Observable<any> {
+    return this.http.post<any>(`${this.api}/send-otp`, { phone })
+      .pipe(
+        timeout(8000),
+        catchError(err => {
+          console.error('Send OTP error:', err);
+          throw err;
+        })
+      );
+  }
+
+  verifyOTP(phone: string, otp: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.api}/verify-otp`, { phone, otp })
+      .pipe(
+        timeout(8000),
+        tap(res => this.handleAuthSuccess(res)),
+        catchError(err => {
+          console.error('Verify OTP error:', err);
+          throw err;
+        })
+      );
+  }
+
   register(data: any): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/register`, data)
       .pipe(

@@ -219,6 +219,91 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// OTP Temporary Memory Store
+const otpStore = new Map();
+
+exports.sendOTP = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Phone number required' });
+
+    // Generate a 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    otpStore.set(phone, { otp, expires });
+
+    // Send OTP via simulated SMS service
+    const smsService = require('../services/sms.service');
+    if (smsService && typeof smsService.sendNotificationSMS === 'function') {
+      await smsService.sendNotificationSMS(phone, 'Verification Code', `Your VoiceTask verification code is: ${otp}`);
+    } else {
+      console.log(`[SMS OTP Simulator] To: ${phone} | Code: ${otp}`);
+    }
+
+    res.status(200).json({ 
+      message: 'OTP sent successfully', 
+      otp // Return OTP in response so client can auto-fill or print for easy reference
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { phone, otp, firstName, email } = req.body;
+    if (!phone || !otp) return res.status(400).json({ message: 'Phone and OTP code required' });
+
+    const record = otpStore.get(phone);
+    if (!record) return res.status(400).json({ message: 'No OTP requested for this phone number' });
+
+    if (Date.now() > record.expires) {
+      otpStore.delete(phone);
+      return res.status(400).json({ message: 'OTP code has expired' });
+    }
+
+    if (record.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP code' });
+    }
+
+    // Clear OTP on successful verification
+    otpStore.delete(phone);
+
+    // Check if user already exists
+    let user = await User.findOne({ phone });
+
+    if (!user) {
+      // If user does not exist, create a default profile
+      const finalEmail = email || `phone_${Date.now()}@voicetask.com`;
+      const finalName = firstName || 'Phone User';
+      
+      user = await User.create({
+        firstName: finalName,
+        phone,
+        email: finalEmail,
+        provider: 'phone'
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.firstName,
+        avatar: user.avatar
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Clear cache periodically
 setInterval(() => {
   for (const [key, value] of userCache.entries()) {

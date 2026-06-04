@@ -347,3 +347,14 @@ h1 {
   font-size: 12px;
   margin: 0;
 }
+
+.otp-hint-banner {
+  background: rgba(79, 142, 247, 0.1);
+  border: 1px dashed #4f8ef7;
+  color: #9cb3f5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-top: 10px;
+  text-align: center;
+}
