@@ -1,4 +1,5 @@
 const Notification = require('../models/Notification.model');
+const User = require('../models/User.model');
 
 exports.getNotifications = async (req, res) => {
   try {
@@ -48,6 +49,24 @@ exports.createNotification = async (userId, type, title, message, taskId = null)
 
     if (global.broadcastNotification) {
       global.broadcastNotification(notification);
+    }
+
+    // Retrieve user details and check notification preferences
+    const user = await User.findById(userId);
+    if (user && user.notificationsEnabled !== false) {
+      const preferences = user.notificationPreferences || { email: true, push: true, sound: true };
+
+      // 1. Send Email Notification
+      if (preferences.email && user.email) {
+        const { sendNotificationEmail } = require('../services/email.service');
+        await sendNotificationEmail(user.email, title, message);
+      }
+
+      // 2. Send SMS Notification
+      if (user.phone) {
+        const { sendNotificationSMS } = require('../services/sms.service');
+        await sendNotificationSMS(user.phone, title, message);
+      }
     }
 
     return notification;
